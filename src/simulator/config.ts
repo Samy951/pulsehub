@@ -9,6 +9,7 @@ export interface SimulatorConfig {
   port: number;
   faults: FaultRates;
   stop: StopFault;
+  overheat: number;
 }
 
 // Every simulator parameter lives here, with its default; any of them can be overridden on the command line
@@ -23,6 +24,7 @@ const OPTIONS = {
   anomaly: { type: 'string', default: '0' },
   stop: { type: 'string', default: '0' },
   'stop-after': { type: 'string', default: '10' },
+  overheat: { type: 'string', default: '0' },
 } as const;
 
 // Throws on unknown options or out-of-range values, so a typo never silently runs the default
@@ -44,5 +46,6 @@ export function parseSimulatorConfig(args: string[]): SimulatorConfig {
       devices: parseInteger('--stop', values.stop, 0, 65_535),
       afterMs: parseNumber('--stop-after', values['stop-after'], 0, 86_400) * 1000,
     },
+    overheat: parseInteger('--overheat', values.overheat, 0, 65_535),
   };
 }

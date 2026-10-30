@@ -19,14 +19,16 @@ export interface StopFault {
 
 // 95.00 °C: far above any healthy reading, yet still a valid int16
 const ANOMALY_TEMPERATURE = 9500;
+// 80.00 °C on every frame: above the hub's default 70 °C threshold for as long as the run lasts
+const OVERHEAT_TEMPERATURE = 8000;
 
 export function isStopped(deviceId: number, elapsedMs: number, stop: StopFault): boolean {
   return deviceId <= stop.devices && elapsedMs >= stop.afterMs;
 }
 
-function withAnomaly(frame: Frame): Frame {
+function withTemperature(frame: Frame, value: number): Frame {
   const measures = frame.measures.map((measure) =>
-    measure.metricId === MetricId.TEMPERATURE ? { ...measure, value: ANOMALY_TEMPERATURE } : measure,
+    measure.metricId === MetricId.TEMPERATURE ? { ...measure, value } : measure,
   );
   return { ...frame, measures };
 }
@@ -39,16 +41,21 @@ function corruptChecksum(bytes: Buffer): void {
 // Turns each frame into the datagrams to send right now, with faults applied at the configured rates
 export class FaultInjector {
   private readonly rates: FaultRates;
+  private readonly overheatDevices: number;
   private readonly random: Random;
   private readonly held = new Map<number, Buffer>();
 
-  constructor(rates: FaultRates, random: Random) {
+  // overheatDevices: devices 1..overheatDevices report a sustained overheat, to demonstrate the hub's alert
+  constructor(rates: FaultRates, overheatDevices: number, random: Random) {
     this.rates = rates;
+    this.overheatDevices = overheatDevices;
     this.random = random;
   }
 
   apply(frame: Frame): Buffer[] {
-    const bytes = encode(this.roll(this.rates.anomaly) ? withAnomaly(frame) : frame);
+    let content = frame.deviceId <= this.overheatDevices ? withTemperature(frame, OVERHEAT_TEMPERATURE) : frame;
+    if (this.roll(this.rates.anomaly)) content = withTemperature(content, ANOMALY_TEMPERATURE);
+    const bytes = encode(content);
     if (this.roll(this.rates.badChecksum)) corruptChecksum(bytes);
 
     const late = this.held.get(frame.deviceId);
