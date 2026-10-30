@@ -6,6 +6,7 @@ export interface HubConfig {
   refreshMs: number;
   silentAfterMs: number;
   hotTemperature: number; // hundredths of °C, the protocol unit
+  rebootGapMs: number;
 }
 
 // Every hub parameter with its default; override any of them through the environment or a .env file
@@ -15,6 +16,7 @@ const DEFAULTS = {
   PULSEHUB_REFRESH_MS: '500',
   PULSEHUB_SILENT_AFTER_MS: '2000',
   PULSEHUB_HOT_CELSIUS: '70',
+  PULSEHUB_REBOOT_GAP_MS: '3000',
 } as const;
 
 type Setting = keyof typeof DEFAULTS;
@@ -28,5 +30,6 @@ export function loadHubConfig(env: Partial<Record<string, string>>): HubConfig {
     refreshMs: parseInteger('PULSEHUB_REFRESH_MS', read('PULSEHUB_REFRESH_MS'), 50, 60_000),
     silentAfterMs: parseInteger('PULSEHUB_SILENT_AFTER_MS', read('PULSEHUB_SILENT_AFTER_MS'), 100, 3_600_000),
     hotTemperature: Math.round(parseNumber('PULSEHUB_HOT_CELSIUS', read('PULSEHUB_HOT_CELSIUS'), -50, 300) * 100),
+    rebootGapMs: parseInteger('PULSEHUB_REBOOT_GAP_MS', read('PULSEHUB_REBOOT_GAP_MS'), 100, 3_600_000),
   };
 }
