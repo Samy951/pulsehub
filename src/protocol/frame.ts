@@ -26,6 +26,10 @@ export interface Frame {
   measures: Measure[];
 }
 
+export function frameSize(measureCount: number): number {
+  return HEADER_SIZE + MEASURE_SIZE * measureCount + CHECKSUM_SIZE;
+}
+
 export function xorChecksum(bytes: Uint8Array): number {
   let checksum = 0;
   for (const byte of bytes) checksum ^= byte;
