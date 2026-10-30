@@ -187,13 +187,13 @@ Résultats sur un Apple M1 Pro (8 cœurs), en local :
 
 | Simulateurs | Demandé (trames/s) | Envoyé  | Accepté | Pertes  |
 | ----------- | ------------------ | ------- | ------- | ------- |
-| 1           | 1 000              | 981     | 970     | 0 %     |
-| 1           | 100 000            | 96 250  | 94 960  | 0 %     |
-| 2           | 200 000            | 174 125 | 170 268 | **0 %** |
-| 3           | 300 000            | 196 250 | 182 683 | 4,63 %  |
-| 4           | 400 000            | 227 750 | 169 085 | 23,24 % |
+| 1           | 1 000              | 999     | 985     | 0 %     |
+| 1           | 100 000            | 99 875  | 99 000  | 0 %     |
+| 2           | 200 000            | 199 988 | 198 137 | **0 %** |
+| 3           | 300 000            | 231 832 | 216 263 | 4,80 %  |
+| 4           | 400 000            | 247 629 | 200 459 | 17,88 % |
 
-→ **≈ 170 000 trames/s sans perte**, soit 170 fois la charge nominale. Au-delà, le tampon UDP du système déborde et le hub perd des trames. Un seul simulateur plafonne vers 130 000 trames/s, d'où l'exécution en parallèle. L'écart « envoyé / accepté » à 0 % de perte vient du démarrage des simulateurs pendant la fenêtre de 10 s.
+→ **≈ 200 000 trames/s sans perte**, soit 200 fois la charge nominale. Au-delà, le tampon UDP du système déborde et le hub perd des trames ; les simulateurs eux-mêmes plafonnent alors vers 230 000 à 250 000 trames/s envoyées, la machine étant saturée. L'écart « envoyé / accepté » à 0 % de perte vient du démarrage des simulateurs pendant la fenêtre de 10 s.
 
 ### Simplifié faute de temps
 
