@@ -4,12 +4,16 @@
 import { spawn } from 'node:child_process';
 import type { ChildProcess } from 'node:child_process';
 import { setTimeout as sleep } from 'node:timers/promises';
+import { loadHubConfig } from '../src/hub/config.ts';
 import { Pipeline } from '../src/hub/pipeline.ts';
 import { startReceiver } from '../src/hub/receiver.ts';
 import { Sequencer } from '../src/hub/sequencer.ts';
 import { FleetSummary } from '../src/hub/summary.ts';
+import { parseInteger } from '../src/shared/parse-number.ts';
 
-const PORT = 9099;
+// Its own port, so the benchmark can run while a hub is listening on PULSEHUB_UDP_PORT
+const PORT = parseInteger('PULSEHUB_BENCH_PORT', process.env.PULSEHUB_BENCH_PORT ?? '9099', 1, 65_535);
+// The measurement method itself (described in the README): 10 s per load step, loads below
 const STEP_SECONDS = 10;
 
 interface Load {
@@ -69,8 +73,14 @@ async function measure(summary: FleetSummary, load: Load): Promise<Record<string
 }
 
 async function main(): Promise<void> {
-  const summary = new FleetSummary({ silentAfterMs: 2000, hotTemperature: 7000, alertAfterMs: 3000 });
-  const pipeline = new Pipeline(new Sequencer(3000), summary);
+  // Same settings as the hub, so the benchmark measures the chain exactly as `npm run hub` builds it
+  const config = loadHubConfig(process.env);
+  const summary = new FleetSummary({
+    silentAfterMs: config.silentAfterMs,
+    hotTemperature: config.hotTemperature,
+    alertAfterMs: config.alertAfterMs,
+  });
+  const pipeline = new Pipeline(new Sequencer(config.rebootGapMs), summary);
   const socket = await startReceiver(PORT, (bytes) => pipeline.handle(bytes, Date.now()));
 
   const results = [];
