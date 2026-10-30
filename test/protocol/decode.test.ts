@@ -69,3 +69,14 @@ test('ne lève jamais d\'exception, même sur 1000 datagrammes aléatoires', () 
     assert.doesNotThrow(() => decode(randomBytes(randomInt(0, 600))));
   }
 });
+
+// Random bytes almost never pass the magic or checksum checks: truncate and corrupt a valid frame,
+// then fix its checksum, so the deeper reads (count, measures) are actually reached
+test('ne lève jamais d\'exception sur 1000 trames valides tronquées et corrompues au hasard', () => {
+  for (let i = 0; i < 1000; i++) {
+    const bytes = encode(telemetry).subarray(0, randomInt(16, 26));
+    bytes[randomInt(bytes.length)] = randomInt(256);
+    bytes.writeUInt8(xorChecksum(bytes.subarray(0, -1)), bytes.length - 1);
+    assert.doesNotThrow(() => decode(bytes));
+  }
+});
