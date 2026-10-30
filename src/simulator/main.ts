@@ -12,10 +12,10 @@ function main(): void {
   const devices = Array.from({ length: config.devices }, (_, i) => new VirtualDevice(config.firstId + i, startedAt, Math.random));
   const faults = new FaultInjector(config.faults, config.overheat, Math.random);
   let sentThisSecond = 0;
+  let roundsSent = 0;
 
-  // One tick per period: every running device emits its next frame
-  setInterval(() => {
-    const now = Date.now();
+  // One round: every running device emits its next frame
+  const sendRound = (now: number): void => {
     for (const device of devices) {
       if (isStopped(device.deviceId, now - startedAt, config.stop)) continue;
       for (const datagram of faults.apply(device.nextFrame(now))) {
@@ -23,6 +23,15 @@ function main(): void {
         sentThisSecond++;
       }
     }
+  };
+
+  // setInterval runs a little late on every tick: send the rounds the elapsed time calls for, so the rate holds.
+  // The backlog is capped at one second, so waking up from a laptop sleep does not flood the hub.
+  setInterval(() => {
+    const now = Date.now();
+    const roundsDue = Math.floor(((now - startedAt) * config.rateHz) / 1000);
+    roundsSent = Math.max(roundsSent, roundsDue - Math.ceil(config.rateHz));
+    for (; roundsSent < roundsDue; roundsSent++) sendRound(now);
   }, 1000 / config.rateHz);
 
   setInterval(() => {
