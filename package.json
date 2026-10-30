@@ -13,7 +13,7 @@
     "lint": "oxlint --type-aware --deny-warnings",
     "sim": "node src/simulator/main.ts",
     "hub": "node --env-file-if-exists=.env src/hub/main.ts",
-    "bench": "node scripts/benchmark.ts"
+    "bench": "node --env-file-if-exists=.env scripts/benchmark.ts"
   },
   "devDependencies": {
     "@types/node": "^26.6.6",
