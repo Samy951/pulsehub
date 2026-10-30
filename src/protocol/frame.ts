@@ -1,4 +1,4 @@
-// Protocole PulseHub v1 : toutes les valeurs multi-octets sont en big-endian.
+// PulseHub v1 protocol: every multi-byte value is big-endian.
 
 export const MAGIC = 0x5048; // "PH"
 export const VERSION = 1;
@@ -15,7 +15,7 @@ export type MetricId = (typeof MetricId)[keyof typeof MetricId];
 
 export interface Measure {
   metricId: MetricId;
-  value: number; // int16 : centièmes de °C, mV ou mA selon metricId
+  value: number; // int16: hundredths of °C, mV or mA depending on metricId
 }
 
 export interface Frame {

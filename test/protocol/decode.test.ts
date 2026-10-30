@@ -25,7 +25,7 @@ function mutated(change: (bytes: Buffer) => void): Buffer {
   return bytes;
 }
 
-// Corrompt un champ puis recalcule le checksum, pour atteindre les contrôles situés après lui
+// Corrupts a field then recomputes the checksum, so the checks that run after it are reached
 function resigned(change: (bytes: Buffer) => void): Buffer {
   const bytes = mutated(change);
   bytes.writeUInt8(xorChecksum(bytes.subarray(0, -1)), bytes.length - 1);

@@ -28,7 +28,7 @@ export type DecodeResult = { ok: true; frame: Frame } | { ok: false; error: Deco
 
 const invalid = (error: DecodeError): DecodeResult => ({ ok: false, error });
 
-// Ne lève jamais : chaque lecture du buffer est précédée du contrôle de longueur qui la rend sûre.
+// Never throws: every buffer read is preceded by the length check that makes it safe.
 export function decode(bytes: Buffer): DecodeResult {
   if (bytes.length < frameSize(0)) return invalid('too-short');
   if (bytes.length > MAX_FRAME_SIZE) return invalid('too-long');
