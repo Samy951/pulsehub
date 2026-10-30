@@ -10,7 +10,7 @@ function main(): void {
 
   const startedAt = Date.now();
   const devices = Array.from({ length: config.devices }, (_, i) => new VirtualDevice(i + 1, startedAt, Math.random));
-  const faults = new FaultInjector(config.faults, Math.random);
+  const faults = new FaultInjector(config.faults, config.overheat, Math.random);
   let sentThisSecond = 0;
 
   // One tick per period: every running device emits its next frame

@@ -10,14 +10,14 @@ import type { Frame } from '../../src/protocol/frame.ts';
 const NO_FAULTS: FaultRates = { badChecksum: 0, duplicate: 0, reorder: 0, anomaly: 0 };
 
 // random() always returns 0: every fault with a rate above 0 fires, the others never do
-function injector(rates: Partial<FaultRates>): FaultInjector {
-  return new FaultInjector({ ...NO_FAULTS, ...rates }, () => 0);
+function injector(rates: Partial<FaultRates>, overheatDevices = 0): FaultInjector {
+  return new FaultInjector({ ...NO_FAULTS, ...rates }, overheatDevices, () => 0);
 }
 
-function frame(seq: number): Frame {
+function frame(seq: number, deviceId = 5): Frame {
   return {
     type: FrameType.TELEMETRY,
-    deviceId: 5,
+    deviceId,
     seq,
     uptimeMs: seq * 50,
     measures: [
@@ -72,4 +72,16 @@ test('arrêt : les N premiers appareils se taisent une fois le délai écoulé',
 
 test('arrêt : les autres appareils continuent d\'émettre', () => {
   assert.equal(isStopped(3, 60_000, { devices: 2, afterMs: 10_000 }), false);
+});
+
+test('surchauffe : les N premiers appareils restent à 80 °C, les autres ne changent pas', () => {
+  const faults = injector({}, 2);
+  const temperatureOf = (deviceId: number): number | undefined => {
+    const [result] = faults.apply(frame(0, deviceId)).map(decode);
+    return result?.ok ? result.frame.measures[0]?.value : undefined;
+  };
+
+  assert.equal(temperatureOf(1), 8000);
+  assert.equal(temperatureOf(2), 8000);
+  assert.equal(temperatureOf(3), 4000);
 });

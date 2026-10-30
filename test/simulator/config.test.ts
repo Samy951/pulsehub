@@ -10,6 +10,7 @@ test('sans option : 50 appareils à 20 Hz vers 127.0.0.1:9000, aucun défaut', (
     port: 9000,
     faults: { badChecksum: 0, duplicate: 0, reorder: 0, anomaly: 0 },
     stop: { devices: 0, afterMs: 10_000 },
+    overheat: 0,
   });
 });
 
@@ -22,6 +23,7 @@ test('lit les options de la ligne de commande', () => {
     '--duplicate', '0.05',
     '--stop', '2',
     '--stop-after', '3',
+    '--overheat', '4',
   ]);
 
   assert.equal(config.devices, 10);
@@ -30,6 +32,7 @@ test('lit les options de la ligne de commande', () => {
   assert.equal(config.faults.badChecksum, 0.02);
   assert.equal(config.faults.duplicate, 0.05);
   assert.deepEqual(config.stop, { devices: 2, afterMs: 3000 });
+  assert.equal(config.overheat, 4);
 });
 
 const invalidArgs: [string, string[], RegExp][] = [
