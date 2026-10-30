@@ -9,7 +9,7 @@ function main(): void {
   socket.on('error', (error) => console.error(`UDP error: ${error.message}`));
 
   const startedAt = Date.now();
-  const devices = Array.from({ length: config.devices }, (_, i) => new VirtualDevice(i + 1, startedAt, Math.random));
+  const devices = Array.from({ length: config.devices }, (_, i) => new VirtualDevice(config.firstId + i, startedAt, Math.random));
   const faults = new FaultInjector(config.faults, config.overheat, Math.random);
   let sentThisSecond = 0;
 
