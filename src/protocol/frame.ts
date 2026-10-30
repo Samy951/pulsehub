@@ -26,6 +26,14 @@ export interface Frame {
   measures: Measure[];
 }
 
+export function isFrameType(value: number): value is FrameType {
+  return (Object.values(FrameType) as number[]).includes(value);
+}
+
+export function isMetricId(value: number): value is MetricId {
+  return (Object.values(MetricId) as number[]).includes(value);
+}
+
 export function frameSize(measureCount: number): number {
   return HEADER_SIZE + MEASURE_SIZE * measureCount + CHECKSUM_SIZE;
 }
