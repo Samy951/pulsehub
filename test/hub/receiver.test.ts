@@ -1,23 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createSocket } from 'node:dgram';
-import { setTimeout as sleep } from 'node:timers/promises';
 import { startReceiver } from '../../src/hub/receiver.ts';
-
-function send(port: number, bytes: Buffer): Promise<void> {
-  const client = createSocket('udp4');
-  return new Promise((resolve, reject) => {
-    client.send(bytes, port, '127.0.0.1', (error) => {
-      client.close();
-      if (error) reject(error);
-      else resolve();
-    });
-  });
-}
-
-async function waitFor(condition: () => boolean): Promise<void> {
-  for (let i = 0; i < 100 && !condition(); i++) await sleep(10);
-}
+import { send, waitFor } from '../helpers/udp.ts';
 
 test('transmet chaque datagramme reçu au gestionnaire', async () => {
   const received: Buffer[] = [];

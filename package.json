@@ -11,7 +11,8 @@
     "test": "node --test \"test/**/*.test.ts\"",
     "typecheck": "tsc --noEmit",
     "lint": "oxlint --type-aware --deny-warnings",
-    "sim": "node src/simulator/main.ts"
+    "sim": "node src/simulator/main.ts",
+    "hub": "node --env-file-if-exists=.env src/hub/main.ts"
   },
   "devDependencies": {
     "@types/node": "^26.6.6",
