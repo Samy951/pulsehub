@@ -11,7 +11,7 @@ function main(): void {
   const startedAt = Date.now();
   const devices = Array.from({ length: config.devices }, (_, i) => new VirtualDevice(config.firstId + i, startedAt, Math.random));
   const faults = new FaultInjector(config.faults, config.overheat, Math.random);
-  let sentThisSecond = 0;
+  let sentSinceReport = 0;
   let roundsSent = 0;
 
   // One round: every running device emits its next frame
@@ -20,7 +20,7 @@ function main(): void {
       if (isStopped(device.deviceId, now - startedAt, config.stop)) continue;
       for (const datagram of faults.apply(device.nextFrame(now))) {
         socket.send(datagram, config.port, config.host);
-        sentThisSecond++;
+        sentSinceReport++;
       }
     }
   };
@@ -34,9 +34,14 @@ function main(): void {
     for (; roundsSent < roundsDue; roundsSent++) sendRound(now);
   }, 1000 / config.rateHz);
 
+  // Under heavy load this timer fires late too: divide by the time that really elapsed, not by one second
+  let lastReportAt = startedAt;
   setInterval(() => {
-    process.stdout.write(`\rsending ${sentThisSecond} datagrams/s   `);
-    sentThisSecond = 0;
+    const now = Date.now();
+    const perSecond = Math.round((sentSinceReport * 1000) / Math.max(now - lastReportAt, 1));
+    process.stdout.write(`\rsending ${perSecond} datagrams/s   `);
+    sentSinceReport = 0;
+    lastReportAt = now;
   }, 1000);
 
   console.log(`PulseHub simulator: ${config.devices} devices at ${config.rateHz} Hz -> udp://${config.host}:${config.port}`);
