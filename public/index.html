@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PulseHub — régie</title>
+  <style>
+    :root {
+      --surface: #1a1a19;
+      --panel: #242422;
+      --line: #3a3a37;
+      --text: #f0efec;
+      --muted: #c3c2b7;
+      /* Status colours are reserved for device states and always shown next to a text label */
+      --good: #0ca30c;
+      --warning: #fab219;
+      --serious: #ec835a;
+      --critical: #d03b3b;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 24px; background: var(--surface); color: var(--text); font: 14px/1.4 system-ui, sans-serif; }
+    header { display: flex; align-items: baseline; gap: 16px; }
+    h1 { margin: 0; font-size: 20px; }
+    h2 { margin: 28px 0 10px; font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+    .connection { color: var(--muted); }
+    .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 8px; }
+    .tile { padding: 12px 14px; border-radius: 8px; background: var(--panel); }
+    .tile .label { color: var(--muted); font-size: 12px; }
+    .tile .value { font-size: 28px; font-weight: 600; font-variant-numeric: tabular-nums; }
+    .tile .detail { min-height: 1.4em; color: var(--muted); font-size: 12px; }
+    .dot { display: inline-block; width: 10px; height: 10px; margin-right: 8px; border-radius: 50%; }
+    .dot.ok { background: var(--good); }
+    .dot.hot { background: var(--warning); }
+    .dot.silent { background: var(--serious); }
+    .dot.alert { background: var(--critical); }
+    table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+    th, td { padding: 6px 10px; border-bottom: 1px solid var(--line); text-align: right; }
+    th:nth-child(-n+2), td:nth-child(-n+2) { text-align: left; }
+    th { color: var(--muted); font-size: 12px; font-weight: 500; }
+    .empty { color: var(--muted); }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>PulseHub — régie</h1>
+    <span class="connection" id="connection">connexion au hub…</span>
+  </header>
+
+  <h2>Réception</h2>
+  <section class="tiles">
+    <div class="tile"><div class="label">Trames / s</div><div class="value" id="per-second">0</div><div class="detail"></div></div>
+    <div class="tile"><div class="label">Reçues</div><div class="value" id="received">0</div><div class="detail" id="accepted-detail">0 acceptées</div></div>
+    <div class="tile"><div class="label">Invalides</div><div class="value" id="invalid">0</div><div class="detail" id="invalid-detail"></div></div>
+    <div class="tile"><div class="label">Perdues</div><div class="value" id="lost">0</div><div class="detail" id="loss-rate">0 % des trames attendues</div></div>
+    <div class="tile"><div class="label">Doublons écartés</div><div class="value" id="duplicates">0</div><div class="detail"></div></div>
+    <div class="tile"><div class="label">Retards écartés</div><div class="value" id="late">0</div><div class="detail"></div></div>
+    <div class="tile"><div class="label">Redémarrages</div><div class="value" id="reboots">0</div><div class="detail"></div></div>
+  </section>
+
+  <h2>Appareils</h2>
+  <section class="tiles">
+    <div class="tile"><div class="label"><span class="dot alert"></span>Alerte (chaud prolongé)</div><div class="value" id="count-alert">0</div></div>
+    <div class="tile"><div class="label"><span class="dot silent"></span>Muets</div><div class="value" id="count-silent">0</div></div>
+    <div class="tile"><div class="label"><span class="dot hot"></span>Chauds</div><div class="value" id="count-hot">0</div></div>
+    <div class="tile"><div class="label"><span class="dot ok"></span>OK</div><div class="value" id="count-ok">0</div></div>
+  </section>
+
+  <h2>Détail par appareil — problèmes en premier</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Appareil</th><th>État</th><th>Température</th><th>Tension</th><th>Courant</th>
+        <th>Dernière trame</th><th>Pertes</th><th>Relevés chauds</th><th>Redémarrages</th>
+      </tr>
+    </thead>
+    <tbody id="devices"></tbody>
+  </table>
+  <p class="empty" id="devices-empty">Aucun appareil reçu pour le moment.</p>
+
+  <script>
+    const STATUS = {
+      alert: { label: 'ALERTE', rank: 0 },
+      silent: { label: 'MUET', rank: 1 },
+      hot: { label: 'CHAUD', rank: 2 },
+      ok: { label: 'OK', rank: 3 },
+    };
+    const integer = new Intl.NumberFormat('fr-FR');
+    const percent = new Intl.NumberFormat('fr-FR', { style: 'percent', maximumFractionDigits: 2 });
+    const decimals = (digits) => new Intl.NumberFormat('fr-FR', { minimumFractionDigits: digits, maximumFractionDigits: digits });
+    const oneDecimal = decimals(1);
+    const twoDecimals = decimals(2);
+
+    const setText = (id, text) => { document.getElementById(id).textContent = text; };
+    const measure = (value, format, unit) => (value === null ? '—' : `${format.format(value)} ${unit}`);
+
+    function renderReception(reception) {
+      setText('per-second', integer.format(reception.perSecond));
+      setText('received', integer.format(reception.received));
+      setText('accepted-detail', `${integer.format(reception.accepted)} acceptées`);
+      setText('invalid', integer.format(reception.invalid));
+      setText('invalid-detail', Object.entries(reception.invalidByReason).map(([reason, count]) => `${reason} : ${count}`).join(' · '));
+      setText('lost', integer.format(reception.lost));
+      setText('loss-rate', `${percent.format(reception.lossRate)} des trames attendues`);
+      setText('duplicates', integer.format(reception.duplicates));
+      setText('late', integer.format(reception.late));
+      setText('reboots', integer.format(reception.reboots));
+    }
+
+    function statusCell(status) {
+      const cell = document.createElement('td');
+      const dot = document.createElement('span');
+      dot.className = `dot ${status}`;
+      cell.append(dot, STATUS[status].label);
+      return cell;
+    }
+
+    function deviceRow(device) {
+      const row = document.createElement('tr');
+      const cell = (text) => { const td = document.createElement('td'); td.textContent = text; return td; };
+      row.append(
+        cell(`#${device.deviceId}`),
+        statusCell(device.status),
+        cell(measure(device.temperatureC, oneDecimal, '°C')),
+        cell(measure(device.voltageV, twoDecimals, 'V')),
+        cell(measure(device.currentA, twoDecimals, 'A')),
+        cell(`il y a ${oneDecimal.format(device.lastSeenMsAgo / 1000)} s`),
+        cell(integer.format(device.lost)),
+        cell(integer.format(device.hotReadings)),
+        cell(integer.format(device.reboots)),
+      );
+      return row;
+    }
+
+    function render(snapshot) {
+      renderReception(snapshot.reception);
+      for (const status of Object.keys(STATUS)) setText(`count-${status}`, integer.format(snapshot.statusCounts[status]));
+      const devices = snapshot.devices.toSorted((a, b) => STATUS[a.status].rank - STATUS[b.status].rank || a.deviceId - b.deviceId);
+      document.getElementById('devices').replaceChildren(...devices.map(deviceRow));
+      setText('devices-empty', devices.length === 0 ? 'Aucun appareil reçu pour le moment.' : '');
+    }
+
+    // EventSource reconnects on its own if the hub restarts
+    const events = new EventSource('/events');
+    events.onopen = () => setText('connection', 'connecté au hub');
+    events.onerror = () => setText('connection', 'connexion perdue, nouvelle tentative…');
+    events.onmessage = (event) => render(JSON.parse(event.data));
+  </script>
+</body>
+</html>
