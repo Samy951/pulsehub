@@ -4,7 +4,7 @@ import { randomBytes, randomInt } from 'node:crypto';
 import { decode } from '../../src/protocol/decode.ts';
 import type { DecodeError } from '../../src/protocol/decode.ts';
 import { encode } from '../../src/protocol/encode.ts';
-import { FrameType, MetricId } from '../../src/protocol/frame.ts';
+import { FrameType, MetricId, xorChecksum } from '../../src/protocol/frame.ts';
 import type { Frame } from '../../src/protocol/frame.ts';
 
 const telemetry: Frame = {
@@ -22,6 +22,13 @@ const telemetry: Frame = {
 function mutated(change: (bytes: Buffer) => void): Buffer {
   const bytes = encode(telemetry);
   change(bytes);
+  return bytes;
+}
+
+// Corrupts a field then recomputes the checksum, so the checks that run after it are reached
+function resigned(change: (bytes: Buffer) => void): Buffer {
+  const bytes = mutated(change);
+  bytes.writeUInt8(xorChecksum(bytes.subarray(0, -1)), bytes.length - 1);
   return bytes;
 }
 
@@ -48,7 +55,7 @@ const invalidFrames: [DecodeError, Buffer][] = [
   ['bad-checksum', mutated((b) => b.writeUInt8(b.readUInt8(b.length - 1) ^ 0xff, b.length - 1))],
   ['bad-device', encode({ ...telemetry, deviceId: 0 })],
   ['bad-count', encode({ ...telemetry, type: FrameType.HEARTBEAT })],
-  ['bad-metric', encode({ ...telemetry, measures: [{ metricId: 9 as MetricId, value: 1 }] })],
+  ['bad-metric', resigned((b) => b.writeUInt8(9, 15))],
 ];
 
 for (const [error, bytes] of invalidFrames) {
