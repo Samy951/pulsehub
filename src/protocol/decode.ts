@@ -4,6 +4,7 @@ import {
   MAGIC,
   MAX_FRAME_SIZE,
   MEASURE_SIZE,
+  Offset,
   VERSION,
   frameSize,
   isFrameType,
@@ -32,19 +33,19 @@ const invalid = (error: DecodeError): DecodeResult => ({ ok: false, error });
 export function decode(bytes: Buffer): DecodeResult {
   if (bytes.length < frameSize(0)) return invalid('too-short');
   if (bytes.length > MAX_FRAME_SIZE) return invalid('too-long');
-  if (bytes.readUInt16BE(0) !== MAGIC) return invalid('bad-magic');
-  if (bytes.readUInt8(2) !== VERSION) return invalid('bad-version');
+  if (bytes.readUInt16BE(Offset.MAGIC) !== MAGIC) return invalid('bad-magic');
+  if (bytes.readUInt8(Offset.VERSION) !== VERSION) return invalid('bad-version');
 
-  const type = bytes.readUInt8(3);
+  const type = bytes.readUInt8(Offset.TYPE);
   if (!isFrameType(type)) return invalid('bad-type');
 
-  const count = bytes.readUInt8(14);
+  const count = bytes.readUInt8(Offset.COUNT);
   if (bytes.length !== frameSize(count)) return invalid('bad-length');
 
   const last = bytes.length - 1;
   if (xorChecksum(bytes.subarray(0, last)) !== bytes.readUInt8(last)) return invalid('bad-checksum');
 
-  const deviceId = bytes.readUInt16BE(4);
+  const deviceId = bytes.readUInt16BE(Offset.DEVICE_ID);
   if (deviceId === 0) return invalid('bad-device');
   if (type === FrameType.HEARTBEAT && count !== 0) return invalid('bad-count');
 
@@ -56,8 +57,7 @@ export function decode(bytes: Buffer): DecodeResult {
     measures.push({ metricId, value: bytes.readInt16BE(offset + 1) });
   }
 
-  return {
-    ok: true,
-    frame: { type, deviceId, seq: bytes.readUInt32BE(6), uptimeMs: bytes.readUInt32BE(10), measures },
-  };
+  const seq = bytes.readUInt32BE(Offset.SEQ);
+  const uptimeMs = bytes.readUInt32BE(Offset.UPTIME_MS);
+  return { ok: true, frame: { type, deviceId, seq, uptimeMs, measures } };
 }

@@ -7,6 +7,16 @@ export const MEASURE_SIZE = 3;
 export const CHECKSUM_SIZE = 1;
 export const MAX_FRAME_SIZE = 512;
 
+export const Offset = {
+  MAGIC: 0,
+  VERSION: 2,
+  TYPE: 3,
+  DEVICE_ID: 4,
+  SEQ: 6,
+  UPTIME_MS: 10,
+  COUNT: 14,
+} as const;
+
 export const FrameType = { TELEMETRY: 0x01, HEARTBEAT: 0x02 } as const;
 export type FrameType = (typeof FrameType)[keyof typeof FrameType];
 
