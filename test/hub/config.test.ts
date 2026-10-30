@@ -9,6 +9,7 @@ test('sans variable : UDP 9000, HTTP 8080, rafraîchissement 500 ms, muet après
     refreshMs: 500,
     silentAfterMs: 2000,
     hotTemperature: 7000,
+    rebootGapMs: 3000,
   });
 });
 
@@ -19,9 +20,17 @@ test('lit chaque paramètre depuis l\'environnement', () => {
     PULSEHUB_REFRESH_MS: '250',
     PULSEHUB_SILENT_AFTER_MS: '5000',
     PULSEHUB_HOT_CELSIUS: '65.5',
+    PULSEHUB_REBOOT_GAP_MS: '10000',
   });
 
-  assert.deepEqual(config, { udpPort: 9100, httpPort: 3000, refreshMs: 250, silentAfterMs: 5000, hotTemperature: 6550 });
+  assert.deepEqual(config, {
+    udpPort: 9100,
+    httpPort: 3000,
+    refreshMs: 250,
+    silentAfterMs: 5000,
+    hotTemperature: 6550,
+    rebootGapMs: 10_000,
+  });
 });
 
 test('refuse une valeur invalide en nommant la variable fautive', () => {
